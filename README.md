@@ -1,1 +1,1 @@
-This is for linux only !
+This only works on linux !
