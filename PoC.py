@@ -31,8 +31,8 @@ def crack(hashtocrack):
     Popen(f"hashcat \'{hashtocrack}\' {wordlist_path} -O -m 5500 -w 4 >/dev/null 2>&1",shell=True)
     time.sleep(3)
     cracked = str(Popen(f"hashcat \'{hashtocrack}\' -m 5500 --show 2>/dev/null",shell=True,stdout=PIPE).stdout.read()).replace("b'","").replace("'","")
+    username = hashtocrack.split(":")[0]
     if len(cracked) > 2:
-        username = hashtocrack.split(":")[0]
         password = cracked.split(":")[-1].replace("\\n","")
         print("[+] cracked !")
         print(f"[+] username: {username}")
